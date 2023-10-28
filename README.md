@@ -23,6 +23,13 @@ python experiments/stereoset.py \
   --model_name_or_path gpt2
 ```
 
++ 然后用下面的命令计算总的结果：
+
+```bash
+python experiments/stereoset_evaluation.py \
+  --predictions_dir results/stereoset/
+```
+
 + 这些模型结构目前是固定的，我还没有探索怎么加不同模型结构，但是相同结构的不同模型应该可以直接测
 
 This repository contains the official source code for [An Empirical Survey of the Effectiveness of Debiasing Techniques for Pre-trained Language Models](https://arxiv.org/abs/2110.08527) presented at ACL 2022.

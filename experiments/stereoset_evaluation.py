@@ -1,6 +1,8 @@
 import argparse
 from collections import Counter, OrderedDict, defaultdict
 import glob
+import sys
+sys.path.append(".")
 import json
 import os
 import re
