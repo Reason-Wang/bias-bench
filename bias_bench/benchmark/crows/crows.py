@@ -103,7 +103,7 @@ class CrowSPairsRunner:
             for index, data in df_data.iterrows():
                 direction = data["direction"]
                 bias = data["bias_type"]
-
+                # print(bias, self._bias_type)
                 assert bias == self._bias_type
 
                 sent1, sent2 = data["sent1"], data["sent2"]
@@ -417,6 +417,9 @@ class CrowSPairsRunner:
                     "bias_type": bias_type,
                 }
                 df_data = df_data.append(df_item, ignore_index=True)
+                # print(df_data, pd.DataFrame(df_item))
+
+                # df_data = pd.concat([df_data, pd.DataFrame(df_item, index=[0])], ignore_index=True)
 
         return df_data
 

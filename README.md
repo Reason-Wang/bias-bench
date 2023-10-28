@@ -3,6 +3,28 @@
 
 [![arxiv](https://img.shields.io/badge/arXiv-2110.00768-b31b1b.svg)](https://arxiv.org/abs/2110.08527)
 
+## 使用
+
++ 对crows-pairs，一个示例命令如下：
+
+```bash
+python experiments/crows.py \
+  --model GPT2LMHeadModel \
+  --model_name_or_path gpt2 \
+  --bias_type gender
+```
+
++ 期中，model为模型结构，model_name_or_path为模型名称或目录，bias_type为偏见种类。具体选项可再experiments/crows.py中查看
++ 对stereoset，一个示例命令如下：
+
+```bash
+python experiments/stereoset.py \
+  --model GPT2LMHeadModel \
+  --model_name_or_path gpt2
+```
+
++ 这些模型结构目前是固定的，我还没有探索怎么加不同模型结构，但是相同结构的不同模型应该可以直接测
+
 This repository contains the official source code for [An Empirical Survey of the Effectiveness of Debiasing Techniques for Pre-trained Language Models](https://arxiv.org/abs/2110.08527) presented at ACL 2022.
 
 ## Bias Bench Leaderboard

@@ -1,7 +1,8 @@
 import argparse
 import os
 import json
-
+import sys
+sys.path.append(".")
 import transformers
 
 from bias_bench.benchmark.crows import CrowSPairsRunner

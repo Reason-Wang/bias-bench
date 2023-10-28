@@ -1,7 +1,8 @@
 import argparse
 import json
 import os
-
+import sys
+sys.path.append(".")
 import transformers
 
 from bias_bench.benchmark.stereoset import StereoSetRunner
