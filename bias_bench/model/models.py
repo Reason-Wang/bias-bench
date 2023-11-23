@@ -3,8 +3,8 @@ from functools import partial
 import torch
 import transformers
 
-from bias_bench.debias.self_debias.modeling import GPT2Wrapper
-from bias_bench.debias.self_debias.modeling import MaskedLMWrapper
+# from bias_bench.debias.self_debias.modeling import GPT2Wrapper
+# from bias_bench.debias.self_debias.modeling import MaskedLMWrapper
 
 
 class BertModel:
@@ -46,6 +46,9 @@ class GPT2LMHeadModel:
     def __new__(self, model_name_or_path):
         return transformers.GPT2LMHeadModel.from_pretrained(model_name_or_path)
 
+class LlamaLMModel:
+    def __new__(self, model_name_or_path):
+        return transformers.LlamaForCausalLM.from_pretrained(model_name_or_path)
 
 class _SentenceDebiasModel:
     def __init__(self, model_name_or_path, bias_direction):

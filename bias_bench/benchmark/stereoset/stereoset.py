@@ -4,8 +4,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
+import transformers
 from bias_bench.benchmark.stereoset import dataloader
+from fastchat.conversation import get_conv_template
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -45,6 +46,8 @@ class StereoSetRunner:
         is_generative=False,
         is_self_debias=False,
         bias_type=None,
+        prompt=None,
+        conversation_template=None,
     ):
         """Initializes StereoSet runner.
 
@@ -76,6 +79,15 @@ class StereoSetRunner:
         self._bias_type = "race-color" if bias_type == "race" else bias_type
         self._mask_token = self._tokenizer.mask_token
         self._mask_token_id = self._tokenizer.mask_token_id
+        self._prompt = prompt
+        # We don't set system message here, we directly use the system as user's first message
+        if "chat" in conversation_template:
+            self._conv = get_conv_template(conversation_template)
+            self._conv.append_message(self._conv.roles[0], self._prompt['system'])
+            self._conv.append_message(self._conv.roles[1], None)
+        else:
+            self._conv = None
+        # self._conv.set_system_message(prompt['system'])
 
     def __call__(self):
         bias = {}
@@ -190,10 +202,15 @@ class StereoSetRunner:
         # Load the dataset.
         stereoset = dataloader.StereoSet(self._input_file)
 
-        # Assume we are using GPT-2.
-        unconditional_start_token = "<|endoftext|>"
+        ## Modified by @Renxi
+        ## For Llama, the start token is <s>
+        if isinstance(self._tokenizer, transformers.LlamaTokenizer):
+            unconditional_start_token = "<s>"
+            print("Llama Tokenizer, using start token <s>")
+        else:
+            unconditional_start_token = "<|endoftext|>"
         start_token = (
-            torch.tensor(self._tokenizer.encode(unconditional_start_token))
+            torch.tensor(self._tokenizer.encode(unconditional_start_token, add_special_tokens=False))
             .to(device)
             .unsqueeze(0)
         )
@@ -214,13 +231,25 @@ class StereoSetRunner:
 
         clusters = stereoset.get_intrasentence_examples()
         predictions = []
+        has_print = False
         for cluster in tqdm(clusters):
             joint_sentence_probability = []
             for sentence in cluster.sentences:
                 probabilities = {}
 
-                # Encode the sentence
-                tokens = self._tokenizer.encode(sentence.sentence)
+                ## Modified by @Renxi
+                ## Encode the sentence with prompt or conversation template
+                if self._conv is None:
+                    prompt = self._prompt['incontext'] + sentence.sentence
+                else:
+                    self._conv.update_last_message(sentence.sentence)
+                    prompt = self._conv.get_prompt()
+                # Just print once for the prompt
+                if not has_print:
+                    print("Prompt: ", prompt)
+                    has_print = True
+
+                tokens = self._tokenizer.encode(prompt, add_special_tokens=False)
                 tokens_tensor = torch.tensor(tokens).to(device).unsqueeze(0)
 
                 if self._is_self_debias:

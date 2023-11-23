@@ -2,6 +2,7 @@ def _is_generative(model):
     # Checks if we are running an autoregressive model.
     return model in [
         "GPT2LMHeadModel",
+        "LlamaLMModel",
         "SentenceDebiasGPT2LMHeadModel",
         "INLPGPT2LMHeadModel",
         "CDAGPT2LMHeadModel",

@@ -3,6 +3,7 @@ def generate_experiment_id(
     model=None,
     model_name_or_path=None,
     bias_type=None,
+    prompt_name=None,
     seed=None,
 ):
     experiment_id = f"{name}"
@@ -14,6 +15,8 @@ def generate_experiment_id(
         experiment_id += f"_c-{model_name_or_path}"
     if isinstance(bias_type, str):
         experiment_id += f"_t-{bias_type}"
+    if isinstance(prompt_name, str):
+        experiment_id += f"_p-{prompt_name}"
     if isinstance(seed, int):
         experiment_id += f"_s-{seed}"
 

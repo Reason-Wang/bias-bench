@@ -4,13 +4,13 @@ import warnings
 
 # Temporarily ignore pandas deprecation warnings.
 warnings.simplefilter(action="ignore", category=FutureWarning)
-
+import transformers
 import torch
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-
+from fastchat.conversation import get_conv_template
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -44,6 +44,8 @@ class CrowSPairsRunner:
         is_generative=False,
         is_self_debias=False,
         bias_type=None,
+        prompt=None,
+        conversation_template=None,
     ):
         """Initializes CrowS-Pairs benchmark runner.
 
@@ -61,6 +63,14 @@ class CrowSPairsRunner:
         self._is_self_debias = is_self_debias
         # CrowS-Pairs labels race examples with "race-color".
         self._bias_type = bias_type if bias_type != "race" else "race-color"
+
+        ## modified by @Renxi
+        if "chat" in conversation_template:
+            self._conv = get_conv_template(conversation_template)
+            self._conv.append_message(self._conv.roles[0], self._prompt['system'])
+            self._conv.append_message(self._conv.roles[1], None)
+        else:
+            self._conv = None
 
     def __call__(self):
         if self._is_generative:
@@ -99,6 +109,7 @@ class CrowSPairsRunner:
         N = 0
         neutral = 0
         total = len(df_data.index)
+        has_print = False
         with tqdm(total=total) as pbar:
             for index, data in df_data.iterrows():
                 direction = data["direction"]
@@ -108,10 +119,26 @@ class CrowSPairsRunner:
 
                 sent1, sent2 = data["sent1"], data["sent2"]
 
-                sent1_token_ids = self._tokenizer.encode(sent1, return_tensors="pt").to(
+                ## Modified by @Renxi
+                ## Encode the sentence with prompt or conversation template
+                if self._conv is None:
+                    prompt1 = self._prompt['incontext'] + sent1
+                    prompt2 = self._prompt['incontext'] + sent2
+                else:
+                    self._conv.update_last_message(sent1)
+                    prompt1 = self._conv.get_prompt()
+                    self._conv.update_last_message(sent2)
+                    prompt2 = self._conv.get_prompt()
+                ## Just print once for the prompt
+                if not has_print:
+                    print("Prompt1: ", prompt1)
+                    print("Prompt2: ", prompt2)
+                    has_print = True
+
+                sent1_token_ids = self._tokenizer.encode(prompt1, return_tensors="pt", add_special_tokens=False).to(
                     device
                 )
-                sent2_token_ids = self._tokenizer.encode(sent2, return_tensors="pt").to(
+                sent2_token_ids = self._tokenizer.encode(prompt2, return_tensors="pt", add_special_tokens=False).to(
                     device
                 )
 
@@ -224,8 +251,8 @@ class CrowSPairsRunner:
 
                 sent1, sent2 = data["sent1"], data["sent2"]
 
-                sent1_token_ids = self._tokenizer.encode(sent1)
-                sent2_token_ids = self._tokenizer.encode(sent2)
+                sent1_token_ids = self._tokenizer.encode(sent1, add_special_tokens=False)
+                sent2_token_ids = self._tokenizer.encode(sent2, add_special_tokens=False)
 
                 score1 = self._joint_log_probability(sent1_token_ids)
                 score2 = self._joint_log_probability(sent2_token_ids)
@@ -288,8 +315,15 @@ class CrowSPairsRunner:
         return round((stereo_score + antistereo_score) / N * 100, 2)
 
     def _joint_log_probability(self, tokens):
+        ## Modified by @Renxi
+        ## For llama-2, the start token is <s>
+        if isinstance(self._tokenizer, transformers.LlamaTokenizer):
+            start_token = "<s>"
+            print("Llama tokenizer, using <s> as start token.")
+        else:
+            start_token = "<|endoftext|>"
         start_token = (
-            torch.tensor(self._tokenizer.encode("<|endoftext|>"))
+            torch.tensor(self._tokenizer.encode(start_token, add_special_tokens=False))
             .to(device)
             .unsqueeze(0)
         )
