@@ -63,9 +63,9 @@ class CrowSPairsRunner:
         self._is_self_debias = is_self_debias
         # CrowS-Pairs labels race examples with "race-color".
         self._bias_type = bias_type if bias_type != "race" else "race-color"
-
+        self._prompt = prompt
         ## modified by @Renxi
-        if "chat" in conversation_template:
+        if conversation_template is not None:
             self._conv = get_conv_template(conversation_template)
             self._conv.append_message(self._conv.roles[0], self._prompt['system'])
             self._conv.append_message(self._conv.roles[1], None)
@@ -109,7 +109,6 @@ class CrowSPairsRunner:
         N = 0
         neutral = 0
         total = len(df_data.index)
-        has_print = False
         with tqdm(total=total) as pbar:
             for index, data in df_data.iterrows():
                 direction = data["direction"]
@@ -119,26 +118,10 @@ class CrowSPairsRunner:
 
                 sent1, sent2 = data["sent1"], data["sent2"]
 
-                ## Modified by @Renxi
-                ## Encode the sentence with prompt or conversation template
-                if self._conv is None:
-                    prompt1 = self._prompt['incontext'] + sent1
-                    prompt2 = self._prompt['incontext'] + sent2
-                else:
-                    self._conv.update_last_message(sent1)
-                    prompt1 = self._conv.get_prompt()
-                    self._conv.update_last_message(sent2)
-                    prompt2 = self._conv.get_prompt()
-                ## Just print once for the prompt
-                if not has_print:
-                    print("Prompt1: ", prompt1)
-                    print("Prompt2: ", prompt2)
-                    has_print = True
-
-                sent1_token_ids = self._tokenizer.encode(prompt1, return_tensors="pt", add_special_tokens=False).to(
+                sent1_token_ids = self._tokenizer.encode(sent1, return_tensors="pt", add_special_tokens=False).to(
                     device
                 )
-                sent2_token_ids = self._tokenizer.encode(prompt2, return_tensors="pt", add_special_tokens=False).to(
+                sent2_token_ids = self._tokenizer.encode(sent2, return_tensors="pt", add_special_tokens=False).to(
                     device
                 )
 
@@ -243,7 +226,7 @@ class CrowSPairsRunner:
         N = 0
         neutral = 0
         total = len(df_data.index)
-
+        has_print = False
         with tqdm(total=total) as pbar:
             for index, data in df_data.iterrows():
                 direction = data["direction"]
@@ -251,8 +234,24 @@ class CrowSPairsRunner:
 
                 sent1, sent2 = data["sent1"], data["sent2"]
 
-                sent1_token_ids = self._tokenizer.encode(sent1, add_special_tokens=False)
-                sent2_token_ids = self._tokenizer.encode(sent2, add_special_tokens=False)
+                ## Modified by @Renxi
+                ## Encode the sentence with prompt or conversation template
+                if self._conv is None:
+                    prompt1 = self._prompt['incontext'] + sent1
+                    prompt2 = self._prompt['incontext'] + sent2
+                else:
+                    self._conv.update_last_message(sent1)
+                    prompt1 = self._conv.get_prompt()
+                    self._conv.update_last_message(sent2)
+                    prompt2 = self._conv.get_prompt()
+                ## Just print once for the prompt
+                if not has_print:
+                    print("Prompt1: ", prompt1)
+                    print("Prompt2: ", prompt2)
+                    has_print = True
+
+                sent1_token_ids = self._tokenizer.encode(prompt1, add_special_tokens=False)
+                sent2_token_ids = self._tokenizer.encode(prompt2, add_special_tokens=False)
 
                 score1 = self._joint_log_probability(sent1_token_ids)
                 score2 = self._joint_log_probability(sent2_token_ids)

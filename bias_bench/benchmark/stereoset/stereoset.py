@@ -81,7 +81,7 @@ class StereoSetRunner:
         self._mask_token_id = self._tokenizer.mask_token_id
         self._prompt = prompt
         # We don't set system message here, we directly use the system as user's first message
-        if "chat" in conversation_template:
+        if conversation_template is not None:
             self._conv = get_conv_template(conversation_template)
             self._conv.append_message(self._conv.roles[0], self._prompt['system'])
             self._conv.append_message(self._conv.roles[1], None)

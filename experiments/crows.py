@@ -72,6 +72,7 @@ if __name__ == "__main__":
         model=args.model,
         model_name_or_path=args.model_name_or_path,
         bias_type=args.bias_type,
+        prompt_name=args.prompt_name,
     )
 
     with open("data/prompts.json", "r") as f:
